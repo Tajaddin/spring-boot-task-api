@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: spring-boot-task-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/taskapi}
+    username: ${DATABASE_USER:taskapi}
+    password: ${DATABASE_PASSWORD:taskapi}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: ${PORT:8080}
+
+app:
+  jwt:
+    # Base64-encoded 256-bit secret. Override in production via APP_JWT_SECRET.
+    secret: ${APP_JWT_SECRET:dGhpcy1pcy1hLWRldmVsb3BtZW50LW9ubHktc2VjcmV0LWNoYW5nZS1tZQ==}
+    # Token lifetime in minutes.
+    ttl-minutes: ${APP_JWT_TTL_MINUTES:60}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
