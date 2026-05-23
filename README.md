@@ -16,15 +16,15 @@ Reproducible with zero setup (no Docker, no Postgres):
 python load/load_probe.py --requests 5000 --concurrency 50
 ```
 
+Last measured 3-run baseline (full output + hardware in [`bench/results.txt`](bench/results.txt)):
+
 | Metric | Value |
 |---|---:|
-| **Throughput** | **973 req/s** |
-| **Latency p50** | 42 ms |
-| **Latency p95** | 95 ms |
-| **Latency p99** | **159 ms** |
-| Success rate | 5000 / 5000 (100%) |
+| **Throughput** | **973 req/s** (cold-start baseline; warm runs reach ~1,500 rps after JIT) |
+| **Latency p99** | **159 ms** cold, ~60 ms after JIT warmup |
+| Success rate | 5000 / 5000 (100%) per run |
 
-Measured on `GET /api/tasks?size=20` (JWT-authenticated, paginated, owner-scoped query) against a single instance on the H2 demo profile, driven by the standard-library Python probe at concurrency 50. The probe's own thread/GIL overhead caps the number; a k6 run against the Postgres compose stack reports higher. The point is the shape: sub-100ms p95 on an authenticated, DB-backed list endpoint.
+Measured on `GET /api/tasks?size=20` (JWT-authenticated, paginated, owner-scoped query) against a single instance on the H2 demo profile, driven by the standard-library Python probe at concurrency 50. JIT warmup is visible across runs: run 1 lands near the 973 baseline; runs 2–3 climb to ~1.5K rps with p99 below 70 ms. The 973 number stays the conservative headline because that is what a fresh single-run measurement reproduces.
 
 ## What it is
 

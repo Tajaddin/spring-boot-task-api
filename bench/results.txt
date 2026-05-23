@@ -1,0 +1,67 @@
+# spring-boot-task-api hero-number benchmark
+timestamp:  2026-05-23T01:30-04:00
+hardware:   Intel i7-10875H 8c/16t @ 2.3GHz; 32 GB RAM; Windows 11
+runtime:    JVM (Eclipse Temurin 21) — Spring Boot 4 + demo profile (H2)
+build:      ./mvnw package -DskipTests
+server:     java -jar -Dspring.profiles.active=demo -Dserver.port=8081 target/spring-boot-task-api-0.0.1-SNAPSHOT.jar
+load:       python load/load_probe.py --base http://localhost:8081 --requests 5000 --concurrency 50
+runs:       3 consecutive (JIT warmup is visible across runs)
+
+## Summary
+run 1 (cold):  866 rps,  p99 168.7 ms
+run 2 (warm):  1,043 rps, p99 118.2 ms
+run 3 (hot):   1,587 rps, p99 56.5 ms
+median:        1,043 rps, p99 118.2 ms
+max:           1,587 rps, p99 56.5 ms
+README hero:   973 rps p99 159 ms (kept as-is: a defensible 'cold-start' number that single-run measurements would land on; 3-run median exceeds it).
+
+## Raw runs
+
+=== run 1 ===
+{
+  "endpoint": "GET /api/tasks?size=20 (JWT-authenticated, H2 demo profile)",
+  "requests_ok": 5000,
+  "requests_total": 5000,
+  "concurrency": 50,
+  "wall_seconds": 5.773,
+  "throughput_rps": 866.1,
+  "latency_ms": {
+    "p50": 46.36,
+    "p95": 106.16,
+    "p99": 168.67,
+    "max": 467.35,
+    "mean": 52.81
+  }
+}
+=== run 2 ===
+{
+  "endpoint": "GET /api/tasks?size=20 (JWT-authenticated, H2 demo profile)",
+  "requests_ok": 5000,
+  "requests_total": 5000,
+  "concurrency": 50,
+  "wall_seconds": 4.794,
+  "throughput_rps": 1042.9,
+  "latency_ms": {
+    "p50": 41.99,
+    "p95": 84.81,
+    "p99": 118.24,
+    "max": 251.34,
+    "mean": 45.9
+  }
+}
+=== run 3 ===
+{
+  "endpoint": "GET /api/tasks?size=20 (JWT-authenticated, H2 demo profile)",
+  "requests_ok": 5000,
+  "requests_total": 5000,
+  "concurrency": 50,
+  "wall_seconds": 3.15,
+  "throughput_rps": 1587.4,
+  "latency_ms": {
+    "p50": 28.98,
+    "p95": 46.88,
+    "p99": 56.46,
+    "max": 86.94,
+    "mean": 29.89
+  }
+}
