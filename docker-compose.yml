@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: taskapi
       POSTGRES_USER: taskapi
-      POSTGRES_PASSWORD: taskapi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskapi}
     ports:
       - "5432:5432"
     healthcheck:
@@ -21,7 +21,7 @@ services:
     environment:
       DATABASE_URL: jdbc:postgresql://db:5432/taskapi
       DATABASE_USER: taskapi
-      DATABASE_PASSWORD: taskapi
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-taskapi}
       APP_JWT_SECRET: ${APP_JWT_SECRET:-dGhpcy1pcy1hLWRldmVsb3BtZW50LW9ubHktc2VjcmV0LWNoYW5nZS1tZQ==}
     ports:
       - "8080:8080"
