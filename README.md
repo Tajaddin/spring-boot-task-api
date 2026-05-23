@@ -47,7 +47,15 @@ Role categories unlocked: **Backend-Java**, enterprise software, microservices, 
 
 Spring Boot is the single most-requested enterprise backend stack in the job market. This repo backs the "Java / Spring Boot" line on the resume with a real, tested, load-measured service, not a tutorial.
 
-## Run it
+## How to run
+
+Prerequisites: JDK 21+ (the included Maven wrapper handles the rest); Docker optional for the Postgres compose stack.
+
+```bash
+./mvnw test                                                    # 14 tests on H2 demo profile
+./mvnw spring-boot:run -Dspring-boot.run.profiles=demo         # API on :8080 (H2)
+python load/load_probe.py --requests 5000 --concurrency 50     # reproduces the rps hero
+```
 
 ### Zero-setup demo (H2, in-memory)
 
