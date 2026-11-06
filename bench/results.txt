@@ -13,7 +13,7 @@ run 2 (warm):  1,043 rps, p99 118.2 ms
 run 3 (hot):   1,587 rps, p99 56.5 ms
 median:        1,043 rps, p99 118.2 ms
 max:           1,587 rps, p99 56.5 ms
-README hero:   973 rps p99 159 ms (kept as-is: a defensible 'cold-start' number that single-run measurements would land on; 3-run median exceeds it).
+README hero:   median run, 1,043 rps p99 118.2 ms (Spring Boot 4.0.6).
 
 ## Raw runs
 

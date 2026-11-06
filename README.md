@@ -1,6 +1,6 @@
 # spring-boot-task-api
 
-> Production Spring Boot 4 REST API. **973 req/s at p99 159ms** on a JWT-authenticated endpoint (single instance, H2 demo profile, 50 concurrent clients, 5000/5000 OK). JWT auth, Postgres + Flyway, bcrypt, per-user authorization, 19 tests on H2 with zero Docker needed.
+> Production Spring Boot 4 REST API. **1,043 req/s at p99 118 ms** on a JWT-authenticated endpoint (median of 3 runs; single instance, H2 demo profile, 50 concurrent clients, 5000/5000 OK). JWT auth, Postgres + Flyway, bcrypt, per-user authorization, 19 tests on H2 with zero Docker needed.
 
 [![ci](https://github.com/Tajaddin/spring-boot-task-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Tajaddin/spring-boot-task-api/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -20,11 +20,11 @@ Last measured 3-run baseline (full output + hardware in [`bench/results.txt`](be
 
 | Metric | Value |
 |---|---:|
-| **Throughput** | **973 req/s** (cold-start baseline; warm runs reach ~1,500 rps after JIT) |
-| **Latency p99** | **159 ms** cold, ~60 ms after JIT warmup |
+| **Throughput** | **1,043 req/s** median run (866 cold, 1,587 after JIT warmup) |
+| **Latency p99** | **118 ms** median run (169 ms cold, 56 ms after JIT warmup) |
 | Success rate | 5000 / 5000 (100%) per run |
 
-Measured on `GET /api/tasks?size=20` (JWT-authenticated, paginated, owner-scoped query) against a single instance on the H2 demo profile, driven by the standard-library Python probe at concurrency 50. JIT warmup is visible across runs: run 1 lands near the 973 baseline; runs 2–3 climb to ~1.5K rps with p99 below 70 ms. The 973 number stays the conservative headline because that is what a fresh single-run measurement reproduces.
+Measured on `GET /api/tasks?size=20` (JWT-authenticated, paginated, owner-scoped query) against a single instance on the H2 demo profile, driven by the standard-library Python probe at concurrency 50. The runs date from 2026-05-23 on Spring Boot 4.0.6 and have not been repeated since the 4.0.9 patch bump. JIT warmup is visible across runs: throughput climbs from 866 rps cold to 1,587 rps by run 3 while p99 falls from 169 ms to 56 ms.
 
 ## What it is
 
@@ -91,7 +91,7 @@ docker compose up --build
 # app on :8080, Postgres on 127.0.0.1:5432 only, Flyway migrates on boot
 ```
 
-Compose refuses to start without both variables. The app refuses to start without `APP_JWT_SECRET`. The demo profile carries a public dev key so it runs with zero setup; that key is rejected under any other profile.
+Compose refuses to start without both variables. The app refuses to start without `APP_JWT_SECRET`. The demo profile carries a public dev key so it runs with zero setup; that key is accepted only under the demo or test profile, and never alongside `prod`.
 
 ## API
 
@@ -116,7 +116,7 @@ Compose refuses to start without both variables. The app refuses to start withou
 - `TaskServiceTest` (4): create defaults, not-found on unowned, partial-update semantics, delete guard. Mockito, no Spring context.
 - `ApiIntegrationTest` (6): full MVC + security filter chain on H2 — anonymous rejected, register/login/CRUD, cross-user isolation, duplicate-email rejection, password validation, actuator metrics and health details closed to registered users.
 - `SpringBootTaskApiApplicationTests` (1): context loads with Flyway migrations applied.
-- `JwtSecretStartupTest` (4): boots the real app outside the test profile; startup fails without `APP_JWT_SECRET` and rejects the committed dev key unless the demo profile is active (and never alongside `prod`).
+- `JwtSecretStartupTest` (4): boots the real app outside the test profile; startup fails without `APP_JWT_SECRET` and rejects the committed dev key unless the demo or test profile is active (and never alongside `prod`).
 
 JaCoCo coverage report at `target/site/jacoco/index.html` after `./mvnw test`.
 
