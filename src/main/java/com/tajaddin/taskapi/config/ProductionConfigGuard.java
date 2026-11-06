@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
  *   <li>{@code app.jwt.secret} == the committed base64 dev secret, unless the
  *       "demo" or "test" profile is active and no production profile is.
  *       Anyone can read that secret and mint a token for any user id.</li>
- *   <li>{@code spring.datasource.password} == "taskapi" (the docker-compose
- *       and local dev fallback) under the "prod" or "production" profile.</li>
+ *   <li>{@code spring.datasource.password} == "taskapi" (the local dev
+ *       fallback in application.yml) under the "prod" or "production" profile.</li>
  * </ul>
  */
 @Component

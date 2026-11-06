@@ -86,11 +86,12 @@ curl -s localhost:8080/api/tasks -H "authorization: Bearer $TOKEN"
 
 ```bash
 export APP_JWT_SECRET=$(openssl rand -base64 32)   # required, there is no default
+export POSTGRES_PASSWORD=$(openssl rand -hex 24)   # required, there is no default
 docker compose up --build
-# app on :8080, Postgres on :5432, Flyway migrates on boot
+# app on :8080, Postgres on 127.0.0.1:5432 only, Flyway migrates on boot
 ```
 
-The app refuses to start without `APP_JWT_SECRET`. The demo profile carries a public dev key so it runs with zero setup; that key is rejected under any other profile.
+Compose refuses to start without both variables. The app refuses to start without `APP_JWT_SECRET`. The demo profile carries a public dev key so it runs with zero setup; that key is rejected under any other profile.
 
 ## API
 
@@ -126,6 +127,7 @@ JaCoCo coverage report at `target/site/jacoco/index.html` after `./mvnw test`.
 python load/load_probe.py --requests 5000 --concurrency 50
 
 # heavier, scriptable (needs k6 + the compose stack):
+export APP_JWT_SECRET=$(openssl rand -base64 32) POSTGRES_PASSWORD=$(openssl rand -hex 24)
 docker compose up -d
 k6 run load/k6-script.js
 ```
