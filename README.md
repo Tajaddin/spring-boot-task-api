@@ -38,7 +38,7 @@ A task-management REST API that demonstrates the patterns enterprise Java backen
 | Validation | Jakarta Bean Validation on request DTOs, structured 400 responses with per-field errors |
 | Pagination | Spring `Pageable`, capped page size, sorted by created-at |
 | Errors | `@RestControllerAdvice` mapping domain + validation exceptions to a consistent `ErrorResponse` |
-| Observability | Spring Boot Actuator health / info, public; every other actuator path is denied, since any visitor can register an account |
+| Observability | Spring Boot Actuator health / info, public; health reports status only, and every other actuator path is denied, since any visitor can register an account |
 | Tests | 19 tests: JWT unit, service unit (Mockito), full HTTP flow via MockMvc on H2 + real Flyway migrations, startup secret checks |
 
 ## Why this matters for hiring
@@ -114,7 +114,7 @@ Compose refuses to start without both variables. The app refuses to start withou
 
 - `JwtServiceTest` (4): issue/parse round trip, TTL, tamper rejection, foreign-key rejection.
 - `TaskServiceTest` (4): create defaults, not-found on unowned, partial-update semantics, delete guard. Mockito, no Spring context.
-- `ApiIntegrationTest` (6): full MVC + security filter chain on H2 — anonymous rejected, register/login/CRUD, cross-user isolation, duplicate-email rejection, password validation, actuator metrics closed to registered users.
+- `ApiIntegrationTest` (6): full MVC + security filter chain on H2 — anonymous rejected, register/login/CRUD, cross-user isolation, duplicate-email rejection, password validation, actuator metrics and health details closed to registered users.
 - `SpringBootTaskApiApplicationTests` (1): context loads with Flyway migrations applied.
 - `JwtSecretStartupTest` (4): boots the real app outside the test profile; startup fails without `APP_JWT_SECRET` and rejects the committed dev key unless the demo profile is active (and never alongside `prod`).
 
