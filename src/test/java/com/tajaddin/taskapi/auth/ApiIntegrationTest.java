@@ -109,6 +109,16 @@ class ApiIntegrationTest {
     }
 
     @Test
+    void actuatorMetricsAreClosedToRegisteredUsers() throws Exception {
+        String token = registerAndGetToken("metrics@example.com");
+
+        mvc.perform(get("/actuator/metrics").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void validationRejectsShortPassword() throws Exception {
         mvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
