@@ -1,6 +1,6 @@
 # spring-boot-task-api
 
-> Production Spring Boot 4 REST API. **973 req/s at p99 159ms** on a JWT-authenticated endpoint (single instance, H2 demo profile, 50 concurrent clients, 5000/5000 OK). JWT auth, Postgres + Flyway, bcrypt, per-user authorization, 14 tests on H2 with zero Docker needed.
+> Production Spring Boot 4 REST API. **973 req/s at p99 159ms** on a JWT-authenticated endpoint (single instance, H2 demo profile, 50 concurrent clients, 5000/5000 OK). JWT auth, Postgres + Flyway, bcrypt, per-user authorization, 18 tests on H2 with zero Docker needed.
 
 [![ci](https://github.com/Tajaddin/spring-boot-task-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Tajaddin/spring-boot-task-api/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -39,7 +39,7 @@ A task-management REST API that demonstrates the patterns enterprise Java backen
 | Pagination | Spring `Pageable`, capped page size, sorted by created-at |
 | Errors | `@RestControllerAdvice` mapping domain + validation exceptions to a consistent `ErrorResponse` |
 | Observability | Spring Boot Actuator health / info / metrics / prometheus endpoints |
-| Tests | 14 tests: JWT unit, service unit (Mockito), full HTTP flow via MockMvc on H2 + real Flyway migrations |
+| Tests | 18 tests: JWT unit, service unit (Mockito), full HTTP flow via MockMvc on H2 + real Flyway migrations, startup secret checks |
 
 ## Why this matters for hiring
 
@@ -52,7 +52,7 @@ Spring Boot is the single most-requested enterprise backend stack in the job mar
 Prerequisites: JDK 21+ (the included Maven wrapper handles the rest); Docker optional for the Postgres compose stack.
 
 ```bash
-./mvnw test                                                    # 14 tests on H2 demo profile
+./mvnw test                                                    # 18 tests on H2
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=demo         # API on :8080 (H2)
 python load/load_probe.py --requests 5000 --concurrency 50     # reproduces the rps hero
 ```
@@ -85,9 +85,12 @@ curl -s localhost:8080/api/tasks -H "authorization: Bearer $TOKEN"
 ### Production stack (Postgres via Docker)
 
 ```bash
+export APP_JWT_SECRET=$(openssl rand -base64 32)   # required, there is no default
 docker compose up --build
 # app on :8080, Postgres on :5432, Flyway migrates on boot
 ```
+
+The app refuses to start without `APP_JWT_SECRET`. The demo profile carries a public dev key so it runs with zero setup; that key is rejected under any other profile.
 
 ## API
 
@@ -105,13 +108,14 @@ docker compose up --build
 ## Testing
 
 ```bash
-./mvnw test          # 14 tests, runs on H2 in PostgreSQL mode, no Docker
+./mvnw test          # 18 tests, runs on H2 in PostgreSQL mode, no Docker
 ```
 
 - `JwtServiceTest` (4): issue/parse round trip, TTL, tamper rejection, foreign-key rejection.
 - `TaskServiceTest` (4): create defaults, not-found on unowned, partial-update semantics, delete guard. Mockito, no Spring context.
 - `ApiIntegrationTest` (5): full MVC + security filter chain on H2 — anonymous rejected, register/login/CRUD, cross-user isolation, duplicate-email rejection, password validation.
 - `SpringBootTaskApiApplicationTests` (1): context loads with Flyway migrations applied.
+- `JwtSecretStartupTest` (4): boots the real app outside the test profile; startup fails without `APP_JWT_SECRET` and rejects the committed dev key unless the demo profile is active (and never alongside `prod`).
 
 JaCoCo coverage report at `target/site/jacoco/index.html` after `./mvnw test`.
 
@@ -141,7 +145,7 @@ src/main/resources/
   application.yml                     # default (Postgres) profile
   application-demo.yml                # H2 demo profile (zero setup)
   db/migration/V1__init.sql           # Flyway schema
-src/test/...                          # 14 tests on H2
+src/test/...                          # 18 tests on H2
 load/
   load_probe.py                       # stdlib HTTP load probe
   k6-script.js                        # k6 scenario with thresholds

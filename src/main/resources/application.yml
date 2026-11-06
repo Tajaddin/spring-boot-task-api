@@ -22,8 +22,9 @@ server:
 
 app:
   jwt:
-    # Base64-encoded 256-bit secret. Override in production via APP_JWT_SECRET.
-    secret: ${APP_JWT_SECRET:dGhpcy1pcy1hLWRldmVsb3BtZW50LW9ubHktc2VjcmV0LWNoYW5nZS1tZQ==}
+    # Base64-encoded 256-bit secret. Required: startup fails if APP_JWT_SECRET
+    # is unset. Only the demo profile ships a (public) dev value.
+    secret: ${APP_JWT_SECRET}
     # Token lifetime in minutes.
     ttl-minutes: ${APP_JWT_TTL_MINUTES:60}
 

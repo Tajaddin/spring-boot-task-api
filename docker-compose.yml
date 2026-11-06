@@ -22,6 +22,6 @@ services:
       DATABASE_URL: jdbc:postgresql://db:5432/taskapi
       DATABASE_USER: taskapi
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-taskapi}
-      APP_JWT_SECRET: ${APP_JWT_SECRET:-dGhpcy1pcy1hLWRldmVsb3BtZW50LW9ubHktc2VjcmV0LWNoYW5nZS1tZQ==}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?set APP_JWT_SECRET to a base64 256-bit key, e.g. openssl rand -base64 32}
     ports:
       - "8080:8080"
