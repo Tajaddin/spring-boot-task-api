@@ -109,6 +109,20 @@ class ApiIntegrationTest {
     }
 
     @Test
+    void actuatorShowsRegisteredUsersOnlyHealthStatus() throws Exception {
+        String token = registerAndGetToken("metrics@example.com");
+
+        mvc.perform(get("/actuator/metrics").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/actuator/health").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("UP")))
+                .andExpect(jsonPath("$.components").doesNotExist());
+    }
+
+    @Test
     void validationRejectsShortPassword() throws Exception {
         mvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

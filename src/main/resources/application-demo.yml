@@ -16,3 +16,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+app:
+  jwt:
+    # Public dev-only key, accepted only under the demo and test profiles.
+    secret: dGhpcy1pcy1hLWRldmVsb3BtZW50LW9ubHktc2VjcmV0LWNoYW5nZS1tZQ==

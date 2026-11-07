@@ -1,6 +1,6 @@
 # spring-boot-task-api
 
-> Production Spring Boot 4 REST API. **973 req/s at p99 159ms** on a JWT-authenticated endpoint (single instance, H2 demo profile, 50 concurrent clients, 5000/5000 OK). JWT auth, Postgres + Flyway, bcrypt, per-user authorization, 14 tests on H2 with zero Docker needed.
+> Production Spring Boot 4 REST API. **1,043 req/s at p99 118 ms** on a JWT-authenticated endpoint (median of 3 runs; single instance, H2 demo profile, 50 concurrent clients, 5000/5000 OK). JWT auth, Postgres + Flyway, bcrypt, per-user authorization, 19 tests on H2 with zero Docker needed.
 
 [![ci](https://github.com/Tajaddin/spring-boot-task-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Tajaddin/spring-boot-task-api/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -20,11 +20,11 @@ Last measured 3-run baseline (full output + hardware in [`bench/results.txt`](be
 
 | Metric | Value |
 |---|---:|
-| **Throughput** | **973 req/s** (cold-start baseline; warm runs reach ~1,500 rps after JIT) |
-| **Latency p99** | **159 ms** cold, ~60 ms after JIT warmup |
+| **Throughput** | **1,043 req/s** median run (866 cold, 1,587 after JIT warmup) |
+| **Latency p99** | **118 ms** median run (169 ms cold, 56 ms after JIT warmup) |
 | Success rate | 5000 / 5000 (100%) per run |
 
-Measured on `GET /api/tasks?size=20` (JWT-authenticated, paginated, owner-scoped query) against a single instance on the H2 demo profile, driven by the standard-library Python probe at concurrency 50. JIT warmup is visible across runs: run 1 lands near the 973 baseline; runs 2–3 climb to ~1.5K rps with p99 below 70 ms. The 973 number stays the conservative headline because that is what a fresh single-run measurement reproduces.
+Measured on `GET /api/tasks?size=20` (JWT-authenticated, paginated, owner-scoped query) against a single instance on the H2 demo profile, driven by the standard-library Python probe at concurrency 50. The runs date from 2026-05-23 on Spring Boot 4.0.6 and have not been repeated since the 4.0.9 patch bump. JIT warmup is visible across runs: throughput climbs from 866 rps cold to 1,587 rps by run 3 while p99 falls from 169 ms to 56 ms.
 
 ## What it is
 
@@ -38,8 +38,8 @@ A task-management REST API that demonstrates the patterns enterprise Java backen
 | Validation | Jakarta Bean Validation on request DTOs, structured 400 responses with per-field errors |
 | Pagination | Spring `Pageable`, capped page size, sorted by created-at |
 | Errors | `@RestControllerAdvice` mapping domain + validation exceptions to a consistent `ErrorResponse` |
-| Observability | Spring Boot Actuator health / info / metrics / prometheus endpoints |
-| Tests | 14 tests: JWT unit, service unit (Mockito), full HTTP flow via MockMvc on H2 + real Flyway migrations |
+| Observability | Spring Boot Actuator health / info, public; health reports status only, and every other actuator path is denied, since any visitor can register an account |
+| Tests | 19 tests: JWT unit, service unit (Mockito), full HTTP flow via MockMvc on H2 + real Flyway migrations, startup secret checks |
 
 ## Why this matters for hiring
 
@@ -52,7 +52,7 @@ Spring Boot is the single most-requested enterprise backend stack in the job mar
 Prerequisites: JDK 21+ (the included Maven wrapper handles the rest); Docker optional for the Postgres compose stack.
 
 ```bash
-./mvnw test                                                    # 14 tests on H2 demo profile
+./mvnw test                                                    # 19 tests on H2
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=demo         # API on :8080 (H2)
 python load/load_probe.py --requests 5000 --concurrency 50     # reproduces the rps hero
 ```
@@ -85,9 +85,13 @@ curl -s localhost:8080/api/tasks -H "authorization: Bearer $TOKEN"
 ### Production stack (Postgres via Docker)
 
 ```bash
+export APP_JWT_SECRET=$(openssl rand -base64 32)   # required, there is no default
+export POSTGRES_PASSWORD=$(openssl rand -hex 24)   # required, there is no default
 docker compose up --build
-# app on :8080, Postgres on :5432, Flyway migrates on boot
+# app on :8080, Postgres on 127.0.0.1:5432 only, Flyway migrates on boot
 ```
+
+Compose refuses to start without both variables. The app refuses to start without `APP_JWT_SECRET`. The demo profile carries a public dev key so it runs with zero setup; that key is accepted only under the demo or test profile, and never alongside `prod`.
 
 ## API
 
@@ -105,13 +109,14 @@ docker compose up --build
 ## Testing
 
 ```bash
-./mvnw test          # 14 tests, runs on H2 in PostgreSQL mode, no Docker
+./mvnw test          # 19 tests, runs on H2 in PostgreSQL mode, no Docker
 ```
 
 - `JwtServiceTest` (4): issue/parse round trip, TTL, tamper rejection, foreign-key rejection.
 - `TaskServiceTest` (4): create defaults, not-found on unowned, partial-update semantics, delete guard. Mockito, no Spring context.
-- `ApiIntegrationTest` (5): full MVC + security filter chain on H2 — anonymous rejected, register/login/CRUD, cross-user isolation, duplicate-email rejection, password validation.
+- `ApiIntegrationTest` (6): full MVC + security filter chain on H2 — anonymous rejected, register/login/CRUD, cross-user isolation, duplicate-email rejection, password validation, actuator metrics and health details closed to registered users.
 - `SpringBootTaskApiApplicationTests` (1): context loads with Flyway migrations applied.
+- `JwtSecretStartupTest` (4): boots the real app outside the test profile; startup fails without `APP_JWT_SECRET` and rejects the committed dev key unless the demo or test profile is active (and never alongside `prod`).
 
 JaCoCo coverage report at `target/site/jacoco/index.html` after `./mvnw test`.
 
@@ -122,6 +127,7 @@ JaCoCo coverage report at `target/site/jacoco/index.html` after `./mvnw test`.
 python load/load_probe.py --requests 5000 --concurrency 50
 
 # heavier, scriptable (needs k6 + the compose stack):
+export APP_JWT_SECRET=$(openssl rand -base64 32) POSTGRES_PASSWORD=$(openssl rand -hex 24)
 docker compose up -d
 k6 run load/k6-script.js
 ```
@@ -141,7 +147,7 @@ src/main/resources/
   application.yml                     # default (Postgres) profile
   application-demo.yml                # H2 demo profile (zero setup)
   db/migration/V1__init.sql           # Flyway schema
-src/test/...                          # 14 tests on H2
+src/test/...                          # 19 tests on H2
 load/
   load_probe.py                       # stdlib HTTP load probe
   k6-script.js                        # k6 scenario with thresholds
